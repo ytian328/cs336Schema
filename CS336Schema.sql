@@ -5,6 +5,11 @@ userTypeName VARCHAR(12),
 PRIMARY KEY(userType)
 );
 
+CREATE TABLE Majors (
+majorid CHAR(3),
+majorNname CHAR(20) NOT NULL,
+PRIMARY KEY(majorid)
+);
 
 CREATE TABLE Users (
 ruid CHAR(9),
@@ -37,20 +42,12 @@ cid CHAR(3),
 year CHAR(2),
 grade CHAR(2),
 majorid CHAR(3),
-PRIMARY KEY (ruid),
-FOREIGN KEY (ruid) REFRENCES Students(ruid),
-
-);
-<-- possible Transcript and KeepTrans can be Merged -->
-<-- create keep Transcript table w/ attributes enrolled and Graduation(Format (ex:FA/12) -->
-CREATE TABLE KeepTrans (
-ruid CHAR(9),
 enrolled CHAR(5), <-- University Enrollment -->
 grad CHAR(5) DEFAULT NULL,
 PRIMARY KEY (ruid),
 FOREIGN KEY (ruid) REFRENCES Students(ruid),
-FOREIGN KEY (ruid) REFRENCES Transcripts(ruid)
-);
+FOREIGN KEY (majorid) REFERENCES Majors(majorid)
+)
 
 CREATE TABLE Register (
 ruid CHAR(9),
@@ -61,45 +58,38 @@ secNum CHAR(2),
 semester CHAR(2),<--format ex:FA -->
 PRIMARY KEY (ruid,cid,secNum,semester),
 FOREIGN KEY (ruid) REFRENCES Students (ruid),
-FOREIGN KEY (cid,secNum,semester,year) REFRENCES Courses
-);
+FOREIGN KEY (cid,secNum,semester,year) REFRENCES Courses);
 
-CREATE TABLE CourseSec (
-cid CHAR(9),
-secNum CHAR(2),
-PRIMARY KEY (cid,secNum),
-FOREIGN KEY (cid) REFRENCES Courses(cid)
-);   <-- + seperate section  -->
-<--OR like-->
 
-CREATE TABLE CourseSec ( <- 
-
+CREATE TABLE Recitation(
 cid CHAR(3),
 secNum CHAR(2),
+maxEnroll INTEGER,
 time CHAR(4),
 roomid CHAR(3),
 bldCode CHAR(3),
 PRIMARY KEY (cid,secNum),
-FOREIGN KEY (cid) REFRENCES Courses(cid),
-FOREIGN KEY (roomid) REFRENCES classRooms(roomid) 
-<-- Relationship between sections and ClassRoom required for this -->
-); <-- also what if course has 2 different lectures not just sectional for recitation? ---->
-<--------------------------------------------->
+FOREIGN KEY (cid, secNum) REFRENCES Courses(cid, secNum),
+FOREIGN KEY (roomid, bldCode) REFRENCES classRooms(roomid, bldCode)
+);
+
+
+
 CREATE TABLE Courses (
 majorid CHAR(3), <-- "198" : "336" like mid:cid:sid -->
 cid CHAR (3),
 secNum CHAR(2),
 year CHAR(4),
-semester CHAR(2),
+semesterid CHAR(2),
 profID CHAR(9),
 bldCode CHAR(3),
 roomid CHAR(3),
 maxEnroll INTEGER,
 prereq VARCHAR(12),
 PRIMARY KEY (majorid,cid,secNum,year,semester),
-FOREIGN KEY (bldCode,roomid) REFRENCES ClassRooms(bldCode,roomid),
-FOREIGN KEY (majorid) REFRENCES Majors (majorid),
-FOREIGN KEY (profID) REFRENCES Users(ruid)
+FOREIGN KEY (bldCode,roomid) REFERENCES ClassRooms(bldCode,roomid),
+FOREIGN KEY (majorid) REFERENCES Majors (majorid),
+FOREIGN KEY (profID) REFERENCES Users(ruid)
 );
 
 CREATE TABLE ClassRooms (
@@ -110,6 +100,51 @@ PRIMARY KEY (bldCode,roomid)
 );
 
 <-- Need to connect response relationship from User to SPN -->
+CREATE TABLE request(
+	cid CHAR(3),
+	secNum CHAR(2),
+	ruid CHAR(9),
+	time CHAR(15) ,
+	status CHAR(20),
+	reason CHAR(20),
+	response CHAR(20) DEFAULT NULL, <- - If given an spn, itll appear here - ->
+	FOREIGN KEY (cid, secNum) REFERENCES Courses(cid, secNum),
+	FOREIGN KEY (ruid) REFERENCES Student(ruid)
+);
+
+CREATE TABLE spns (
+	cid CHAR(3).
+	secNum CHAR(2),
+	quantity INTEGER,
+	PRIMARY KEY(cid, secNum)
+	FOREIGN KEY(cid, secNum) REFERENCES Course(cid, secNum)
+);
+<- - is it 10 spns per course or 10 per section? needs to be modified if 10 per course - ->
+
+
+
+
+
+
+
+<--check and set the usertype when creating new user tuples in table Users-->
+CREATE TRIGGER check_userType BEFORE INSERT ON Users
+        	FOR EACH ROW
+        	BEGIN
+                    	IF NEW.ruid LIKE ‘1%’ THEN
+                                	INSERT INTO User(ruid, name, netid, password, useryType)
+                                	VALUES(NEW.ruid, NEW.name, NEW.netid, NEW.password, 1)
+                    	ELSE IF NEW.ruid LIKE ‘2%’ THEN
+                                	INSERT INTO User(ruid, name, netid, password, useryType)
+                                	VALUES(NEW.ruid, NEW.name, NEW.netid, NEW.password, 3)
+                    	ELSE IF NEW.ruid LIKE ‘3%’ THEN
+                                	INSERT INTO User(ruid, name, netid, password, useryType)
+                                	VALUES(NEW.ruid, NEW.name, NEW.netid, NEW.password, 3)
+                    	END IF;
+        	END;
+
+
+
 
 
 
