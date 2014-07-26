@@ -176,12 +176,21 @@ CREATE TRIGGER check_register BEFORE INSERT ON Register
 			OR
 			'C' >= (SELECT T.grade
 			FROM Transcript T, Course C, NEW
-			WHERE NEW.cid = C.cid AND NEW.ruid = T.ruid AND T.cid = C.prereq) <--the grade is lower than required-->
-			THEN INSERT INTO Register(ruid, registerTime, majorId, cid, secNum, semester, spNum) <--spn need to be provided but how to check if this spNum matches the one provided in the request?-->
-                     		VALUES(NEW.ruid, NEW.registerTime, NEW.majorId, NEW.cid, NEW.secNum, NEW.semester, NEW.spNum);
+			WHERE NEW.cid = C.cid AND NEW.ruid = T.ruid AND T.cid = C.prereq)<--the grade is lower than required-->
+			THEN 
+				BEGIN 
+				IF NEW.spNum = (SELECT R.response
+						FROM request R
+						WHERE R.ruid = NEW.ruid)
+			        THEN INSERT INTO Register(ruid, registerTime, majorId, cid, secNum, semester, spNum) <--spn need to be provided but how to check if this spNum matches the one provided in the request?-->
+                     			VALUES(NEW.ruid, NEW.registerTime, NEW.majorId, NEW.cid, NEW.secNum, NEW.semester, NEW.spNum))
+                     		ELSE NO ACTION
+                     		END IF
+                     		END;
 			
 		ELSE INSERT INTO Register(ruid, registerTime, majorId, cid, secNum, semester,spNum)<--can register without spNum-->
                      VALUES(NEW.ruid, NEW.registerTime, NEW.majorId, NEW.cid, NEW.secNum, NEW.semester);
+                END IF;
 	END;
 
 <--Yuan: before add tuples in request, check if all 10 spn's for such section are used out, if not, add the tuple, if yes reject the action-->
@@ -195,6 +204,7 @@ CREATE TRIGGER check_request_spn BEFORE INSERT ON request
 			NO ACTION
 		ELSE INSERT INTO request(cid, secNum, ruid, time, status, reason, response)
 			VALUES(NEW.cid, NEW.secNum, NEW.ruid, NEW.time, NEW.status, NEW.reason);
+		END IF;
 	END;
 	
 <--Yuan: before prof. give spn to student, check if all spn's are used out-->
@@ -207,6 +217,7 @@ CREATE TRIGGER check_give_spn BEFORE UPDATE ON request
 		THEN
 		NO ACTION
 		ELSE SET OLD.response = NEW.response;
+		END IF;
 	END;
 
 
